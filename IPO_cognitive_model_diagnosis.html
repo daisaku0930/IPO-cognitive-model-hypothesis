@@ -198,11 +198,7 @@
   }
 
   .debug-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
+    display: none;
   }
   .debug-section h3 {
     font-size: 11px;
@@ -267,6 +263,115 @@
     transition: background 0.15s;
   }
   .reset-btn:hover { background: #2a2f4a; }
+
+  /* 全パターン一覧 */
+  #all-patterns-view { display: none; animation: fadeIn 0.3s ease; }
+
+  .patterns-group {
+    margin-bottom: 24px;
+  }
+  .patterns-group-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .accordion-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .accordion-header:hover { background: var(--surface2); }
+  .accordion-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .accordion-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 10px;
+    font-weight: 400;
+  }
+  .accordion-arrow {
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .accordion-item.open .accordion-arrow { transform: rotate(180deg); }
+
+  .accordion-body {
+    display: none;
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border);
+  }
+  .accordion-item.open .accordion-body { display: block; }
+
+  .accordion-section {
+    margin-top: 14px;
+  }
+  .accordion-section h4 {
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .accordion-section p {
+    font-size: 13px;
+    line-height: 1.85;
+    color: var(--text);
+    white-space: pre-line;
+  }
+
+  .all-patterns-back-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 24px;
+  }
+  .all-patterns-back-btn:hover { background: #2a2f4a; }
+
+  .view-all-btn {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    margin-top: 12px;
+  }
+  .view-all-btn:hover { background: var(--surface2); color: var(--text); }
 </style>
 </head>
 <body>
@@ -280,10 +385,11 @@
 
   <div id="quiz-view">
     <div class="progress-wrap">
-      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:10%"></div></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
       <div class="progress-text" id="progress-text">1 / 10</div>
     </div>
     <div id="questions-container"></div>
+    <button class="view-all-btn" onclick="showAllPatterns('quiz')">全パターンを見る</button>
   </div>
 
   <div id="result-view">
@@ -332,10 +438,16 @@
       <h3>デバッグログ</h3>
       <div class="debug-row"><span>ベクトルの向き</span><span class="debug-val" id="dbg-vector">—</span></div>
       <div class="debug-row"><span>注意配分 W</span><span class="debug-val" id="dbg-weight">—</span></div>
-      <div class="debug-row"><span>分解能 n</span><span class="debug-val" id="dbg-res">—</span></div>
+      <div class="debug-row"><span>思考の刻み n_p</span><span class="debug-val" id="dbg-res">—</span></div>
       <div class="debug-row"><span>OPIスコア</span><span class="debug-val" id="dbg-opi">—</span></div>
     </div>
     <button class="reset-btn" onclick="location.reload()">もう一度診断する</button>
+    <button class="view-all-btn" onclick="showAllPatterns('result')">全パターンを見る</button>
+  </div>
+
+  <div id="all-patterns-view">
+    <button class="all-patterns-back-btn" id="back-btn" onclick="hideAllPatterns()">← 戻る</button>
+    <div id="accordion-container"></div>
   </div>
 
 </div>
@@ -350,7 +462,7 @@ const questions = [
   },
   {
     title: "Q2. 仕事や勉強で「不安が解消される」のはどんな瞬間？",
-    a: "必要な情報・データ・資料が揃って「抜け漏れがない」と確認できたとき",
+    a: "必要な情報・データ・資料がすべて手元に揃ったとき",
     b: "「なぜそうなるのか」「どういう仕組みか」が自分の中で腑に落ちたとき",
     c: "「これでいい」という結論が出て、あとはやるだけという状態になったとき"
   },
@@ -358,11 +470,11 @@ const questions = [
     title: "Q3. 「なぜそう思うの？」と突然聞かれたとき、あなたの反応は？",
     a: "「根拠となる事実やデータ」をまず挙げて説明し始める",
     b: "「AだからB、BだからC」という思考の流れを順番に説明する",
-    c: "理由を説明するのが少し面倒、または「なんとなく」と感じる"
+    c: "うまく言葉にできず「なんとなく」としか言えないことが多い"
   },
   {
     title: "Q4. 自分の考えを誰かに説明するとき、その目的は主に？",
-    a: "「自分の理解が正しいか確かめたい」「一緒に答えを探したい」",
+    a: "「自分の理解が正しいかを確かめたい」という気持ちが強い",
     b: "「自分の結論を守りたい」「反論されないよう根拠を固めたい」",
     c: "「そもそも説明に興味がない」「わかってもらえればそれでいい」"
   },
@@ -386,7 +498,7 @@ const questions = [
   },
   {
     title: "Q8. 同じ失敗を繰り返してしまうとき、その原因として思い当たるのは？",
-    a: "確認不足・情報の見落とし・思い込みによる前提ミス",
+    a: "確認不足・情報の見落とし・前提となる事実のズレ",
     b: "「なぜそうなったか」の構造を理解しないまま次に進んでしまったこと",
     c: "そもそも何を目指していたかがぼんやりしていたこと"
   },
@@ -431,9 +543,9 @@ const patterns = {
   },
   "IPO-P-小": {
     name: "実践型ロジカルプレイヤー",
-    desc: "仕組みや因果に関心があるものの、分解は必要最低限にとどめて実用的なラインで動くタイプです。「なぜか」は気になるけれど、深みにはまりすぎず、適度なところで動き始められます。理解しながら実行できるバランス感覚が武器で、組織の中核として機能しやすいタイプです。\n\n「理屈は分かった、ではやってみよう」という切り替えが自然にできます。完全に理解できていなくても動ける一方、なんとなくで動くのとは違い、最低限の構造把握をしてから動くという姿勢があります。\n\nチームの中では「動けるし、説明もできる人」として重宝されます。突出した専門性よりも、場の状況を読んで適切に動ける汎用性が高く、様々な場面で安定したパフォーマンスを出せます。",
-    strength: "理解しながら動ける実行力が際立っています。深入りしすぎず、チームの進行を妨げない判断力があります。説明が求められる場面でも、相手に合わせた粒度で伝えることができるため、橋渡し役として機能しやすいです。また、状況適応力が高く、様々な業務に対応できる柔軟性があります。組織の中でポジションを問わず活躍できるオールラウンダー型の特性を持っています。",
-    caution: "より深い構造の問題を見落とすことがあります。表面的には解決できても、根本原因が解消されていないケースが発生しやすいです。定期的に「なぜ」を一段深く掘り下げる習慣を持つことで、問題解決の精度が上がります。また、バランス型ゆえに「この人の専門は何か」という印象が薄くなりやすいため、自分の得意領域を意識的に育てると、キャリアの軸が安定します。"
+    desc: "「なぜか」は気になるが、1〜2段で掘るのをやめて動き始めるタイプです。構造の全体像が見えていなくても手を動かせる一方、掘り下げを止めるタイミングが早いため、根本原因よりも表面の対処に先に手が届きます。\n\n会議では「とりあえずやってみましょう」と切り出し、その後で振り返る流れを作るのが自然です。マニュアルの「なぜこの手順か」には特に立ち止まらず、手順そのものを先に身体で覚えます。\n\n仕組みを作る役よりも、仕組みの中で確実に動く役として機能しやすく、チームの推進力になります。",
+    strength: "「理屈が8割わかれば動ける」という判断ができるため、完全な理解を待たずに前進できます。掘り下げが浅い分、一つのテーマに長く止まらず、複数の業務を並行して回すのが得意です。説明の場面では、複雑な構造を省いてシンプルに伝えられるため、P型・n_p大の人が省きがちな「結論の一言」を自然に出せます。",
+    caution: "表面で解決できた問題が、形を変えて再発しやすいです。「直った」と判断したあと、なぜ起きたかの一段を掘らないまま次に進むため、同じ構造の問題が別の場面で出てきます。「今回の失敗、原因は何だったか」を1行だけ書き残す習慣が、再発率を下げます。"
   },
   "IPO-O-大": {
     name: "戦略的ディレクター",
@@ -444,7 +556,7 @@ const patterns = {
   "IPO-O-小": {
     name: "直感的実行者",
     desc: "結果を出すために最短ルートを直感的に選ぶタイプです。「終わったかどうか」が最も重要で、プロセスの細部には関心が向きにくいです。スピードと実行力が武器で、「やってみないとわからない」という感覚で動けます。考えすぎずに動けるため、初動が速く、短期間で成果を出す場面で力を発揮します。\n\n「まず動いてみる」という姿勢は、変化が速い環境や、正解が事前に見えない業務では非常に有効です。失敗を恐れず試行できるため、新しいことへの挑戦も得意です。\n\n一方で、「なぜうまくいったか」「なぜ失敗したか」の言語化が苦手なため、再現性が低くなりやすい傾向があります。成功体験を積み重ねながら、振り返りの習慣を持てると強みがさらに活きます。",
-    strength: "圧倒的な実行速度と行動力が強みです。細かいことを考えすぎず動けるため、スピードが求められる場面や、変化への適応が必要な状況で力を発揮します。失敗を恐れずに試せる胆力があり、新しい環境でも比較的早く成果を出せます。また、シンプルに成果に集中できるため、複雑な議論に巻き込まれず前進する推進力があります。",
+    strength: "「完了したかどうか」を判断軸にしているため、余計な検討で手が止まりません。スピードが求められる場面で、他のタイプが「もう少し考えてから」と止まっている間に一手先に動けます。また、結果だけを見るため、プロセスへの固執がなく、うまくいかなければ即座にやり方を変えられます。",
     caution: "「なぜうまくいったか」を言語化しないため、同じミスを繰り返しやすいリスクがあります。成功しても失敗しても、振り返りの習慣がないと成長の速度が落ちます。また、プロセスへの関心が薄いため、チームメンバーへの説明や引き継ぎが苦手になりやすいです。定期的に「今回はなぜこうなったか」を短く言語化する習慣を持つだけで、再現性と説得力が大きく向上します。"
   },
 
@@ -456,14 +568,14 @@ const patterns = {
   },
   "OPI-I-小": {
     name: "確認型ビジョナリー",
-    desc: "強いビジョンや直感が行動の起点ですが、動く前に「これは正しいか」を確かめたいという慎重さも持つタイプです。OPI型の中では比較的落ち着いた部類で、衝動と確認のバランスを自然に取ろうとします。\n\n「こうしたい」という気持ちは強いが、それを裏付ける情報も欲しいという二重構造を持っています。純粋な直感型と違い、周囲との摩擦が少なく、チームの中でも比較的受け入れられやすいタイプです。\n\nビジョンを持ちながら地に足がついている印象を与えるため、「信頼できるクリエイティブ系人材」として評価されやすいです。",
+    desc: "強いビジョンや直感が行動の起点ですが、動く前に「これは正しいか」を確かめたいという引っ張り合いが内側で起きているタイプです。「こうしたい」という確信があるのに、ファクトが揃うまで発表できない、という状態になることがあります。\n\nビジョンを持ちながら情報確認も手放せないため、純粋なOPI型に比べて動き出しが遅くなります。その代わり、根拠なきビジョンで突っ走って後から崩れる失敗は少ない。裏付けが取れた段階での説得力は高く、「感覚と論拠の両方を持つ人」として見られやすいです。\n\n確認が「ブレーキ」になるか「精度の担保」になるかは、ビジョンの確信度次第です。",
     strength: "直感とファクト確認のバランスが取れています。衝動で動く前にブレーキをかけられるため、純粋なOPI型に比べてミスが少なく、信頼を得やすいです。また、情報確認の習慣があるため、ビジョンの修正や方向転換も比較的柔軟にできます。直感と論理の両方を持つ人材として、チームに独自の価値を提供できます。",
     caution: "情報確認の習慣がビジョンの足枷になることがあります。「もう少し確かめてから」という気持ちが続き、動き出しが遅れることがあります。また、ビジョンと確認の間で揺れ続けることで、意思決定が曖昧になるリスクもあります。「このビジョンに自信があるか」「確認はどこまでで十分か」を事前に決めておくと、迷いが減ります。"
   },
   "OPI-P-大": {
     name: "構造化美学派",
     desc: "美学・直感が行動の起点ですが、「なぜそれが良いのか」を徹底的に構造化・言語化したいというこだわりも持つタイプです。OPI型の中で最も希少なパターンで、感性と論理の両方を高いレベルで扱います。\n\n「なんとなく良い」では満足できず、「なぜ良いのかを説明できて初めて完成」と感じます。デザイン・哲学・認知科学・表現論など、「感覚を言語化する」領域への関心を持ちやすいです。\n\n直感を持ちながら構造を作れるため、感覚的なものを他者に伝える翻訳能力が高く、クリエイティブと理論の橋渡し役として独自のポジションを持てます。",
-    strength: "感性と論理を橋渡しできます。「なぜこれが良いのか」を感覚と構造の両面から説明できるため、異なるタイプの人間と対話できます。直感だけでは伝わらない場面でも、構造的な説明で相手を納得させられます。また、自分の美学・価値観を言語化する能力が高いため、ブランディング・コンセプト設計・教育などの分野で特に力を発揮します。",
+    strength: "「なぜこれが良いのか」を感覚と構造の両面から語れるため、感性だけでは動かない相手と、論理だけでは動かない相手の両方に届きます。直感を言語化する過程で自分のビジョン自体が精緻になるため、アウトプットの完成度が高い。クリエイティブな仕事で「なぜそうデザインしたか」を問われたとき、感覚に頼らず構造的に答えられます。",
     caution: "構造化に時間をかけすぎて、直感の鮮度が落ちることがあります。最初のひらめきが色あせないうちに動き始めるバランスが重要です。また、「完全に言語化できるまで公開しない」という姿勢が、アウトプットの遅延につながることがあります。「6割の言語化でリリースし、後から精緻化する」という方法論を取り入れることで、スピードと質のバランスが取れます。"
   },
   "OPI-P-小": {
@@ -504,6 +616,7 @@ const shuffledQuestions = questions.map(q => {
 let currentQuestion = 0;
 const answers = []; // 各問の元キー（a/b/c）を記録
 
+// 初期プログレス表示（問題数に依存しない動的計算）
 // 質問生成
 const container = document.getElementById('questions-container');
 shuffledQuestions.forEach((q, i) => {
@@ -526,6 +639,9 @@ shuffledQuestions.forEach((q, i) => {
   `;
   container.appendChild(box);
 });
+
+// 初期プログレス表示（問題数に依存しない動的計算）
+updateProgress(0);
 
 function updateProgress(idx) {
   const pct = Math.round(((idx + 1) / shuffledQuestions.length) * 100);
@@ -574,8 +690,8 @@ function showResult() {
   if (answers[2] === 'c') opiScore++;
   if (answers[3] === 'b') opiScore++;
   if (answers[6] === 'b') opiScore++;
-  // OPIはスコア2以上で確定、3以上で強OPI
-  const isOPI = opiScore >= 2;
+  // OPIはスコア3以上で確定（4問中3問以上でOPI型）
+  const isOPI = opiScore >= 3;
   const vectorLabel = isOPI ? "OPI型" : "IPO型";
   const vectorKey = isOPI ? "OPI" : "IPO";
 
@@ -594,9 +710,9 @@ function showResult() {
   // 同点の場合はweightKey=nullのまま → 複合型ロジックへ
 
   // 分解能 n（Q5,Q6）
-  const highN = (answers[4] === 'b' || answers[5] === 'a');
+  const highN = (answers[4] === 'b' || answers[5] === 'c');
   const resKey = highN ? "大" : "小";
-  const resLabel = highN ? "分解能：大" : "分解能：小";
+  const resLabel = highN ? "思考の刻み（n_p）：大" : "思考の刻み（n_p）：小";
 
   // パターンキー生成（weightKeyがnull=同点の場合は複合型ロジックへ直行）
   const key = weightKey ? `${vectorKey}-${weightKey}-${resKey}` : null;
@@ -669,6 +785,103 @@ function showResult() {
   document.getElementById('num-i').innerText = `${cI} / ${maxScore}`;
   document.getElementById('num-p').innerText = `${cP} / ${maxScore}`;
   document.getElementById('num-o').innerText = `${cO} / ${maxScore}`;
+}
+
+// ── 全パターン一覧 ──────────────────────────────
+
+const patternGroups = [
+  {
+    label: "IPO型（情報・構造起点）",
+    items: [
+      { key: "IPO-I-大", sub: "Input注視 / 思考の刻み：大" },
+      { key: "IPO-I-小", sub: "Input注視 / 思考の刻み：小" },
+      { key: "IPO-P-大", sub: "Process注視 / 思考の刻み：大" },
+      { key: "IPO-P-小", sub: "Process注視 / 思考の刻み：小" },
+      { key: "IPO-O-大", sub: "Output注視 / 思考の刻み：大" },
+      { key: "IPO-O-小", sub: "Output注視 / 思考の刻み：小" },
+    ]
+  },
+  {
+    label: "OPI型（直感・ビジョン起点）",
+    items: [
+      { key: "OPI-I-大", sub: "Input注視 / 思考の刻み：大" },
+      { key: "OPI-I-小", sub: "Input注視 / 思考の刻み：小" },
+      { key: "OPI-P-大", sub: "Process注視 / 思考の刻み：大" },
+      { key: "OPI-P-小", sub: "Process注視 / 思考の刻み：小" },
+      { key: "OPI-O-大", sub: "Output注視 / 思考の刻み：大" },
+      { key: "OPI-O-小", sub: "Output注視 / 思考の刻み：小" },
+    ]
+  }
+];
+
+let previousView = 'quiz'; // 戻り先を記憶
+
+function buildAccordion() {
+  const container = document.getElementById('accordion-container');
+  if (container.childElementCount > 0) return; // 2回目以降は再生成しない
+
+  patternGroups.forEach(group => {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'patterns-group';
+    groupEl.innerHTML = `<div class="patterns-group-label">${group.label}</div>`;
+
+    group.items.forEach(({ key, sub }) => {
+      const p = patterns[key];
+      if (!p) return;
+      const item = document.createElement('div');
+      item.className = 'accordion-item';
+      item.innerHTML = `
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>
+            <span class="accordion-name">${p.name}</span>
+            <span class="accordion-badge">${sub}</span>
+          </span>
+          <span class="accordion-arrow">▼</span>
+        </div>
+        <div class="accordion-body">
+          <div class="accordion-section">
+            <h4>特徴</h4>
+            <p>${p.desc}</p>
+          </div>
+          <div class="accordion-section">
+            <h4>強み</h4>
+            <p>${p.strength}</p>
+          </div>
+          <div class="accordion-section">
+            <h4>注意点</h4>
+            <p>${p.caution}</p>
+          </div>
+        </div>
+      `;
+      groupEl.appendChild(item);
+    });
+
+    container.appendChild(groupEl);
+  });
+}
+
+function toggleAccordion(header) {
+  const item = header.parentElement;
+  item.classList.toggle('open');
+}
+
+function showAllPatterns(from) {
+  previousView = from;
+  document.getElementById('quiz-view').style.display = 'none';
+  document.getElementById('result-view').style.display = 'none';
+  buildAccordion();
+  document.getElementById('all-patterns-view').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function hideAllPatterns() {
+  document.getElementById('all-patterns-view').style.display = 'none';
+  if (previousView === 'result') {
+    document.getElementById('result-view').style.display = 'block';
+  } else {
+    document.getElementById('quiz-view').style.display = 'block';
+  }
+  window.scrollTo(0, 0);
 }
 </script>
 </body>
